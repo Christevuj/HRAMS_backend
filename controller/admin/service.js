@@ -3,18 +3,14 @@ const { initEnv } = require("../../middleware/utils.js");
 initEnv();
 
 module.exports = {
-  getAllApplicants: async (accountId, entryId) => {
+  getAllApplicants: async (entryId) => {
     const connection = await pool.promise().getConnection();
     try {
       await connection.beginTransaction();
 
-      let whereClause = "WHERE u.userType = 'applicant'";
+      let whereClause = "WHERE 1=1";
       const queryParams = [];
 
-      if (accountId) {
-        whereClause += " AND u.accountId = ?";
-        queryParams.push(accountId);
-      }
       if (entryId) {
         whereClause += " AND ae.id = ?";
         queryParams.push(entryId);
@@ -22,15 +18,9 @@ module.exports = {
 
       const sql = `
         SELECT 
-          u.accountId,
-          u.fullName,
-          u.email,
-          u.userType,
           ae.id AS entryId,
-          ae.lastName,
-          ae.firstName,
-          ae.middleName,
-          ae.emailAddress,
+          TRIM(CONCAT_WS(' ', ae.firstName, ae.middleName, ae.lastName)) AS fullName,
+          ae.emailAddress AS email,
           ae.contactNumber,
           ae.completeAddress,
           ae.educationDegree,
@@ -39,7 +29,6 @@ module.exports = {
           ae.status,
           ae.department,
 
-          -- Use GROUP_CONCAT to manually build JSON array
           IFNULL(
             CONCAT(
               '[',
@@ -56,21 +45,15 @@ module.exports = {
             '[]'
           ) AS documents
 
-        FROM users u
-        JOIN application_entry ae 
-          ON u.accountId = ae.account_id
+        FROM application_entry ae
         LEFT JOIN applicant_document ad 
           ON ae.id = ad.applicantId_Entry
         ${whereClause}
         GROUP BY 
-          u.accountId, 
-          u.fullName,
-          u.email,
-          u.userType,
           ae.id,
-          ae.lastName,
           ae.firstName,
           ae.middleName,
+          ae.lastName,
           ae.emailAddress,
           ae.contactNumber,
           ae.completeAddress,
@@ -85,7 +68,6 @@ module.exports = {
       const [rows] = await connection.query(sql, queryParams);
       await connection.commit();
 
-      // Parse the "documents" JSON string in Node
       const results = rows.map((row) => ({
         ...row,
         documents: row.documents ? JSON.parse(row.documents) : [],
@@ -93,9 +75,11 @@ module.exports = {
 
       return { success: 1, results };
     } catch (error) {
-      console.error(error);
+      console.error(error); // Keep this log for debugging errors
       if (connection) await connection.rollback();
       return { success: 0, results: error.message };
+    } finally {
+      connection.release();
     }
   },
   updateApplicantStatus: async (entryId, newStatus) => {
@@ -111,14 +95,13 @@ module.exports = {
       const [result] = await connection.query(sql, [newStatus, entryId]);
       await connection.commit();
 
-      // result.affectedRows tells us if a row was actually updated
       if (result.affectedRows === 0) {
         return { success: 0, results: "No rows updated (invalid entryId?)" };
       }
 
       return { success: 1, results: "Status updated successfully." };
     } catch (error) {
-      console.error(error);
+      console.error(error); // Keep this log for debugging errors
       if (connection) await connection.rollback();
       return { success: 0, results: error.message };
     }
@@ -139,7 +122,7 @@ module.exports = {
 
       return { success: 1, results: rows };
     } catch (error) {
-      console.error(error);
+      console.error(error); // Keep this log for debugging errors
       if (connection) await connection.rollback();
       return { success: 0, results: error.message };
     }

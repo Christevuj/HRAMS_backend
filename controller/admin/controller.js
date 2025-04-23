@@ -4,15 +4,16 @@ const { getAllApplicants, updateApplicantStatus, getAllJobs } = require("./servi
 
 module.exports = {
     fetchAllApplicants: async (req, res) => {
-        try {
-            const { accountId, entryId } = req.query;
-            console.log(req.params)
-            handleResponse(res, getAllApplicants(accountId, entryId));
-        } catch (error) {
-          console.error(error);
-          return errorException(error, res);
-        }
-      },
+    try {
+        const { accountId } = req.params; // Correctly access accountId from req.params
+        const { entryId } = req.query; // entryId can remain in req.query if it's passed as a query parameter
+        console.log("accountId:", accountId);
+        handleResponse(res, getAllApplicants(accountId, entryId));
+    } catch (error) {
+        console.error(error);
+        return errorException(error, res);
+    }
+},
       changeApplicantStatus: async (req, res) => {
         try {
           const { entryId, newStatus } = req.body;

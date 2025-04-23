@@ -3,11 +3,31 @@ const { handleResponse } = require("../../helpers/handleResponse");
 const { uploadFileToCloudinary } = require("../../middleware/multer_cloudinary");
 const { saveApplicantEntry, saveUser, loginUser } = require("./service");
 
+
 module.exports = {
-  CreateApplicantRegistry: async(req, res) => {
+  CreateApplicantRegistry: async (req, res) => {
     try {
       const data = req.body;
       const files = req.files;
+
+
+
+
+      console.log("Request Body:", data);
+      console.log("Uploaded Files:", files);
+
+
+
+
+      // Ensure required fields are present
+      if (!data.lastName || !data.firstName || !files.resume) {
+        return res.status(400).json({ success: false, message: "Missing required fields" });
+      }
+
+
+
+
+      // Upload files to Cloudinary
       data.files = [];
       for (const fieldName in files) {
         const fileArray = files[fieldName];
@@ -17,12 +37,20 @@ module.exports = {
           data.files.push({ url, fieldName, fileType });
         }
       }
-      handleResponse(res, saveApplicantEntry(data))
+
+
+
+
+      // Save applicant data to the database
+      const result = await saveApplicantEntry(data);
+      return res.status(200).json({ success: true, data: result });
     } catch (error) {
-      console.log(error);
+      console.error("Error in CreateApplicantRegistry:", error);
       return errorException(error, res);
     }
   },
+
+
   CreateUserAccount: async(req,res) => {
     try {
       const data = req.body;
