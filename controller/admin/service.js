@@ -127,4 +127,40 @@ module.exports = {
       return { success: 0, results: error.message };
     }
   },
+
+  createJobService: async (data) => {
+    const connection = await pool.promise().getConnection();
+    try {
+      await connection.beginTransaction();
+
+      const { position, department, requirements, status, type } = data;
+
+      // Insert the job into the database
+      const insertQuery = `
+        INSERT INTO jobs (position, department, requirements, status, type)
+        VALUES (?, ?, ?, ?, ?)
+      `;
+      const [result] = await connection.query(insertQuery, [
+        position,
+        department,
+        requirements,
+        status,
+        type,
+      ]);
+
+      // Fetch the inserted job
+      const selectQuery = "SELECT * FROM jobs WHERE jobId = ?";
+      const [rows] = await connection.query(selectQuery, [result.insertId]);
+
+      await connection.commit();
+
+      return { success: true, message: "Job created successfully.", job: rows[0] };
+    } catch (error) {
+      if (connection) await connection.rollback();
+      console.error("Error creating job:", error);
+      throw error;
+    } finally {
+      connection.release();
+    }
+  },
 };

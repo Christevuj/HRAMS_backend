@@ -1,14 +1,12 @@
 const { errorException } = require("../../helpers/errorException");
 const { handleResponse } = require("../../helpers/handleResponse");
 const { getAllApplicants, updateApplicantStatus, getAllJobs } = require("./service");
-
+const { createJobService } = require("./service");
 module.exports = {
     fetchAllApplicants: async (req, res) => {
     try {
-        const { accountId } = req.params; // Correctly access accountId from req.params
         const { entryId } = req.query; // entryId can remain in req.query if it's passed as a query parameter
-        console.log("accountId:", accountId);
-        handleResponse(res, getAllApplicants(accountId, entryId));
+        handleResponse(res, getAllApplicants( entryId));
     } catch (error) {
         console.error(error);
         return errorException(error, res);
@@ -31,4 +29,24 @@ module.exports = {
           return errorException(error, res);
         }
       },
-};
+
+      createJob: async (req, res) => {
+        try {
+          const { position, department, requirements, status, type } = req.body;
+    
+          // Validate required fields
+          if (!position || !department || !requirements || !status || !type) {
+            return res.status(400).json({
+              success: false,
+              message: "Missing required fields: position, department, requirements, status, or type.",
+            });
+          }
+    
+          // Call the service to create the job
+          handleResponse(res, createJobService(req.body));
+        } catch (error) {
+          console.error("Error creating job:", error);
+          return errorException(error, res);
+        }
+      },
+    };

@@ -1,7 +1,7 @@
-const applicantRouter = require("./applicant.router")
-const adminRouter = require("./admin.router")
+const adminRouter = require("./admin.router");
+const applicantRouter = require("./applicant.router");
 
 module.exports = {
-    applicantRouter,
-    adminRouter
-}
+  adminRouter,
+  applicantRouter,
+};
